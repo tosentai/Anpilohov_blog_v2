@@ -21,19 +21,22 @@
                                     <th scope="col">#</th>
                                     <th scope="col">Категорія</th>
                                     <th scope="col">Батьківська</th>
+                                    <th scope="col">Дії</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 @foreach ($paginator as $item)
                                     <tr>
                                         <td>{{ $item->id }}</td>
-                                        <td>
-                                            <a href="{{ route('blog.admin.categories.edit', $item->id) }}">
-                                                {{ $item->title }}
-                                            </a>
-                                        </td>
+                                        <td>{{ $item->title }}</td>
                                         <td @if(in_array($item->parent_id, [0, 1])) class="text-muted" @endif>
-                                            {{ $item->parentTitle  }}
+                                            {{ $item->parentTitle }}
+                                        </td>
+                                        <td>
+                                            <a href="{{ route('blog.admin.categories.edit', $item->id) }}"
+                                               class="btn btn-sm btn-info">
+                                                <i class="fas fa-edit me-1"></i> Редагувати
+                                            </a>
                                         </td>
                                     </tr>
                                 @endforeach
