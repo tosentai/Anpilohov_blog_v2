@@ -8,7 +8,8 @@ use App\Repositories\BlogCategoryRepository;
 use App\Http\Requests\BlogPostUpdateRequest;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
-
+use App\Http\Requests\BlogPostCreateRequest;
+use App\Models\BlogPost;
 class PostController extends BaseController
 {
     /**
@@ -43,15 +44,33 @@ class PostController extends BaseController
      */
     public function create()
     {
-        //
+        $item = new BlogPost();
+        $categoryList = $this->blogCategoryRepository->getForComboBox();
+
+        return view('blog.admin.posts.edit', compact('item', 'categoryList'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Зберегти нову статтю в базі даних.
+     *
+     * @param  BlogPostCreateRequest  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request)
+    public function store(BlogPostCreateRequest $request)
     {
-        //
+        $data = $request->validated();
+
+        $item = BlogPost::create($data);
+
+        if ($item) {
+            return redirect()
+                ->route('blog.admin.posts.edit', [$item->id])
+                ->with(['success' => 'Успішно створено']);
+        } else {
+            return back()
+                ->withErrors(['msg' => 'Помилка створення'])
+                ->withInput();
+        }
     }
 
     /**
@@ -77,7 +96,11 @@ class PostController extends BaseController
     }
 
     /**
-     * Update the specified resource in storage.
+     * Оновити існуючу статтю в базі даних.
+     *
+     * @param  BlogPostUpdateRequest  $request
+     * @param  string  $id
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(BlogPostUpdateRequest $request, string $id)
     {
@@ -104,10 +127,22 @@ class PostController extends BaseController
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Видалити статтю (м'яке видалення).
+     *
+     * @param  string  $id
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(string $id)
     {
-        //
+        $result = BlogPost::destroy($id);
+
+        if ($result) {
+            return redirect()
+                ->route('blog.admin.posts.index')
+                ->with(['success' => "Запис id[$id] видалено"]);
+        } else {
+            return back()
+                ->withErrors(['msg' => 'Помилка видалення']);
+        }
     }
 }

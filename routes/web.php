@@ -2,8 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RestTestController;
-use App\Http\Controllers\Blog\Admin\CategoryController;
 use App\Http\Controllers\Blog\PostController;
+use App\Http\Controllers\Blog\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Blog\Admin\PostController as AdminPostController;
 
 Route::get('/', function () {
@@ -34,9 +34,10 @@ $groupData = [
     'as' => 'blog.admin.',
 ];
 Route::group($groupData, function () {
-    $methods = ['index','edit','store','update','create',];
-    Route::resource('categories', CategoryController::class)
-        ->only($methods)
+
+    $methods = ['index', 'edit', 'store', 'update', 'create', 'destroy'];
+    Route::resource('categories', AdminCategoryController::class)
+    ->only($methods)
         ->names('categories');
 
     Route::resource('posts', AdminPostController::class)

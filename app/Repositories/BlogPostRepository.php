@@ -52,6 +52,7 @@ class BlogPostRepository extends CoreRepository
                 },
                 'user:id,name',
             ])
+            ->with(['category', 'user'])
             ->paginate($perPage ?? 25);
 
         return $result;

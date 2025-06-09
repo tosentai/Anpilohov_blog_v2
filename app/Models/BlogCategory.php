@@ -11,6 +11,8 @@ class BlogCategory extends Model
     use SoftDeletes;
     use HasFactory;
 
+    const ROOT = 1;
+
     protected $fillable
         = [
             'title',
@@ -20,24 +22,37 @@ class BlogCategory extends Model
         ];
 
     /**
-     * Get the parent category that owns the BlogCategory.
+     * Батьківська категорія
      *
-     * Додаємо метод для батьківської категорії
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function parentCategory()
     {
-        return $this->belongsTo(BlogCategory::class, 'parent_id');
+        return $this->belongsTo(BlogCategory::class, 'parent_id', 'id');
     }
 
     /**
-     * Додаємо аксессор для отримання заголовка з відступом для дочірніх категорій
+     * Приклад аксесора (Accessor) для отримання назви батьківської категорії.
+     *
      * @return string
      */
-    public function getParentTitleAttribute()
+    public function getParentTitleAttribute(): string
     {
-        $parent = $this->parentCategory;
+        $title = $this->parentCategory->title
+            ?? ($this->isRoot()
+                ? 'Корінь'
+                : '???');
 
-        return $parent ? $parent->title : 'Коренева';
+        return $title;
+    }
+
+    /**
+     * Перевірка, чи об'єкт є кореневим.
+     *
+     * @return bool
+     */
+    public function isRoot(): bool
+    {
+        return $this->id === BlogCategory::ROOT;
     }
 }
