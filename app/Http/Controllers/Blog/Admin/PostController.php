@@ -84,22 +84,11 @@ class PostController extends BaseController
         $item = $this->blogPostRepository->getEdit($id);
         if (empty($item)) {
             return back()
-            ->withErrors(['msg' => "Запис id=[{$id}] не знайдено"])
-            ->withInput();
+                ->withErrors(['msg' => "Запис id=[{$id}] не знайдено"])
+                ->withInput();
         }
 
         $data = $request->validated();
-
-        // Обробка slug
-        if (empty($data['slug'])) {
-            $data['slug'] = Str::slug($data['title']);
-        }
-
-        if (empty($item->published_at) && $data['is_published']) {
-            $data['published_at'] = Carbon::now();
-        } else if (!$data['is_published']) {
-            $data['published_at'] = null;
-        }
 
         $result = $item->update($data);
 
