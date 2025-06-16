@@ -10,6 +10,9 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use App\Http\Requests\BlogPostCreateRequest;
 use App\Models\BlogPost;
+use App\Jobs\BlogPostAfterCreateJob;
+use App\Jobs\BlogPostAfterDeleteJob;
+
 class PostController extends BaseController
 {
     /**
@@ -63,6 +66,8 @@ class PostController extends BaseController
         $item = BlogPost::create($data);
 
         if ($item) {
+            BlogPostAfterCreateJob::dispatch($item);
+
             return redirect()
                 ->route('blog.admin.posts.edit', [$item->id])
                 ->with(['success' => 'Успішно створено']);
@@ -137,6 +142,8 @@ class PostController extends BaseController
         $result = BlogPost::destroy($id);
 
         if ($result) {
+            BlogPostAfterDeleteJob::dispatch($id)->delay(20);
+
             return redirect()
                 ->route('blog.admin.posts.index')
                 ->with(['success' => "Запис id[$id] видалено"]);
