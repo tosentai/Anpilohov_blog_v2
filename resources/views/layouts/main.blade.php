@@ -33,6 +33,9 @@
             <li class="nav-item">
                 <a class="nav-link" href="/admin/blog/categories/">Категорії</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/digging_deeper/collections/">Колекції</a>
+            </li>
         </ul>
 
         <ul class="navbar-nav ml-auto">
