@@ -4,10 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Models\BlogPost;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
+use App\Jobs\ProcessVideoJob;
+use App\Jobs\GenerateCatalog\GenerateCatalogMainJob;
 
 class DiggingDeeperController extends Controller
 {
+    public function processVideo()
+    {
+        ProcessVideoJob::dispatch();
+        // Відкладення виконання завдання від моменту потрапляння в чергу.
+        // Не впливає на паузу між спробами виконання завдання.
+        //->delay(10)
+        //->onQueue('name_of_queue')
+    }
+
+    /**
+     * @link http://localhost:8000/digging_deeper/prepare-catalog
+     *
+     * php artisan queue:listen --queue=generate-catalog --tries=3 --delay=10
+     */
+    public function prepareCatalog()
+    {
+        GenerateCatalogMainJob::dispatch();
+    }
+
     /**
      * Базова інформація
      * @url https://laravel.com/docs/11.x/collections#introduction
@@ -15,7 +35,7 @@ class DiggingDeeperController extends Controller
      * Довідкова інформація
      * @url https://laravel.com/api/11.x/Illuminate/Support/Collection.html
      *
-     * Варіант колекції для моделі eloquent
+     * Варіант колеції для моделі eloquent
      * @url https://laravel.com/api/11.x/Illuminate/Database/Eloquent/Collection.html
      *
      */
@@ -25,35 +45,36 @@ class DiggingDeeperController extends Controller
         $result = [];
 
         /**
-         * @var \Illuminate\Database\Eloquent\Collection $eloquentCollection
+         * @var \Illuminate\Database\Eloquent\Collection $eloquentCollections
          */
         $eloquentCollection = BlogPost::withTrashed()->get();
 
-        dd(__METHOD__, $eloquentCollection, $eloquentCollection->toArray());
+        //dd(__METHOD__, $eloquentCollection, $eloquentCollection->toArray());
 
         /**
          * @var \Illuminate\Support\Collection $collection
          */
         $collection = collect($eloquentCollection->toArray());
 
-        /* dd(
-             get_class($eloquentCollection),
-             get_class($collection),
-             $collection
-         );*/
+        dd(
+            get_class($eloquentCollection),
+            get_class($collection),
+            $collection
+        );
 
 
-        $result['first'] = $collection->first();
-        $result['last'] = $collection->last();
+        $result['first'] = $collection->first(); //вибираємо 1 елемент
+        $result['last'] = $collection->last();  //вибираємо останній елемент
 
         $result['where']['data'] = $collection
-            ->where('category_id', 10)
-            ->values()
-            ->keyBy('id');
+            ->where('category_id', 10)  //вибираємо елементи з категорією 10
+            ->values()  //беремо лише значення без ключів
+            ->keyBy('id');  //прирівнюємо id з бд з ключем масива
 
         $result['where']['count'] = $result['where']['data']->count();
         $result['where']['isEmpty'] = $result['where']['data']->isEmpty();
         $result['where']['isNotEmpty'] = $result['where']['data']->isNotEmpty();
+
 
 
         if ($result['where']['data']->isNotEmpty()) {
@@ -61,8 +82,9 @@ class DiggingDeeperController extends Controller
         }
 
         $result['where_first'] = $collection
-            ->firstWhere('created_at', '>', '2020-02-24 03:46:16');
+            ->firstWhere('created_at', '>' , '2020-02-24 03:46:16');
 
+        //Базова змінна не змінюється. Вертаємо змінено версію.
         $result['map']['all'] = $collection->map(function ($item) {
             $newItem = new \stdClass();
             $newItem->item_id = $item['id'];
@@ -72,65 +94,53 @@ class DiggingDeeperController extends Controller
             return $newItem;
         });
 
-        $result['map']['not_exists'] = $result['map']['all']->where('exists', '=', false)->values()->keyBy('item_id');
+        $result['map']['not_exists'] = $result['map']['all']->where('exists', '=', false)->values()->keyBy('item_id');  //витягаємо видалені елементи
 
-        //dd ($result);
+        dd ($result);
 
+        //Базова змінна змінюється (трансформується).
         $collection->transform(function ($item) {
             $newItem = new \stdClass();
-            $newItem->item_id = $item->item_id ?? $item['id'];
-            $newItem->item_name = $item->item_name ?? $item['title'];
-            $newItem->exists = $item->exists ?? (isset($item['deleted_at']) ? is_null($item['deleted_at']) : true);
-            $newItem->created_at = (isset($item->created_at) && $item->created_at instanceof Carbon)
-                ? $item->created_at
-                : (isset($item['created_at']) ? Carbon::parse($item['created_at']) : null);
-
+            $newItem->item_id = $item['id'];
+            $newItem->item_name = $item['title'];
+            $newItem->exists = is_null($item['deleted_at']);
+            $newItem->created_at = !empty($item['created_at']) ? Carbon::parse($item['created_at']) : null;
             return $newItem;
         });
 
-        //dd ($collection);
+        // 2. Фільтрація
+        $filtered = $collection->filter(function ($item) {
+            if (!($item->created_at instanceof \Carbon\Carbon)) {
+                return false;
+            }
+
+            return $item->created_at->isFriday() && $item->created_at->day == 11;
+        });
+
+        dd ($collection);
 
         $newItem = new \stdClass;
         $newItem->id = 9999;
-        $newItem->created_at = Carbon::now();
-        $newItem->item_name = 'Новий елемент 1';
-        $newItem->exists = true;
 
         $newItem2 = new \stdClass;
         $newItem2->id = 8888;
-        $newItem2->created_at = Carbon::parse('2025-02-11 10:00:00');
-        $newItem2->item_name = 'Новий елемент 2';
-        $newItem2->exists = true;
 
-        $collection->prepend($newItem);
-        $collection->push($newItem2);
-        $pulledItem = $collection->pull(1);
+        dd ($newItem, $newItem2);
 
-        //dd(compact('collection', 'newItemFirst' , 'newItemLast', 'pulledItem'));
+        //Додаємо елемент в початок/кінець колекції
+        $newItemFirst = $collection->prepend($newItem)->first(); //додали в початок
+        $newItemLast = $collection->push($newItem2)->last(); //додали в кінець
+        $pulledItem = $collection->pull(1); //забрали з першим ключем
 
-        $filtered = $collection->filter(function ($item) {
-            if (!isset($item->created_at)) {
-                return false; // Пропускаємо елементи без created_at
-            }
+        dd(compact('collection', 'newItemFirst' , 'newItemLast', 'pulledItem'));
 
-            $createdAt = $item->created_at instanceof Carbon ? $item->created_at : Carbon::parse($item->created_at);
-
-            $byDay = $createdAt->isFriday();
-            $byDate = $createdAt->day == 11;
-
-            $result = $byDay && $byDate;
-
-            return $result;
-        });
-
-        //dd(compact('filtered'));
+        dd(compact('filtered')); //закоментувати 91-106 рядки перед перевіркою
 
         $sortedSimpleCollection = collect([5, 3, 1, 2, 4])->sort()->values();
         $sortedAscCollection = $collection->sortBy('created_at');
         $sortedDescCollection = $collection->sortByDesc('item_id');
 
-        //dd(compact('sortedSimpleCollection', 'sortedAscCollection', 'sortedDescCollection'));
+        dd(compact('sortedSimpleCollection', 'sortedAscCollection', 'sortedDescCollection'));
 
-        return view('welcome');
     }
 }
