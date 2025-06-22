@@ -12,10 +12,6 @@ class DiggingDeeperController extends Controller
     public function processVideo()
     {
         ProcessVideoJob::dispatch();
-        // Відкладення виконання завдання від моменту потрапляння в чергу.
-        // Не впливає на паузу між спробами виконання завдання.
-        //->delay(10)
-        //->onQueue('name_of_queue')
     }
 
     /**
@@ -63,13 +59,13 @@ class DiggingDeeperController extends Controller
         );
 
 
-        $result['first'] = $collection->first(); //вибираємо 1 елемент
-        $result['last'] = $collection->last();  //вибираємо останній елемент
+        $result['first'] = $collection->first();
+        $result['last'] = $collection->last();
 
         $result['where']['data'] = $collection
-            ->where('category_id', 10)  //вибираємо елементи з категорією 10
-            ->values()  //беремо лише значення без ключів
-            ->keyBy('id');  //прирівнюємо id з бд з ключем масива
+            ->where('category_id', 10)
+            ->values()
+            ->keyBy('id');
 
         $result['where']['count'] = $result['where']['data']->count();
         $result['where']['isEmpty'] = $result['where']['data']->isEmpty();
@@ -84,7 +80,6 @@ class DiggingDeeperController extends Controller
         $result['where_first'] = $collection
             ->firstWhere('created_at', '>' , '2020-02-24 03:46:16');
 
-        //Базова змінна не змінюється. Вертаємо змінено версію.
         $result['map']['all'] = $collection->map(function ($item) {
             $newItem = new \stdClass();
             $newItem->item_id = $item['id'];
@@ -98,7 +93,6 @@ class DiggingDeeperController extends Controller
 
         dd ($result);
 
-        //Базова змінна змінюється (трансформується).
         $collection->transform(function ($item) {
             $newItem = new \stdClass();
             $newItem->item_id = $item['id'];
@@ -108,7 +102,6 @@ class DiggingDeeperController extends Controller
             return $newItem;
         });
 
-        // 2. Фільтрація
         $filtered = $collection->filter(function ($item) {
             if (!($item->created_at instanceof \Carbon\Carbon)) {
                 return false;
@@ -127,14 +120,13 @@ class DiggingDeeperController extends Controller
 
         dd ($newItem, $newItem2);
 
-        //Додаємо елемент в початок/кінець колекції
-        $newItemFirst = $collection->prepend($newItem)->first(); //додали в початок
-        $newItemLast = $collection->push($newItem2)->last(); //додали в кінець
-        $pulledItem = $collection->pull(1); //забрали з першим ключем
+        $newItemFirst = $collection->prepend($newItem)->first();
+        $newItemLast = $collection->push($newItem2)->last();
+        $pulledItem = $collection->pull(1);
 
         dd(compact('collection', 'newItemFirst' , 'newItemLast', 'pulledItem'));
 
-        dd(compact('filtered')); //закоментувати 91-106 рядки перед перевіркою
+        dd(compact('filtered'));
 
         $sortedSimpleCollection = collect([5, 3, 1, 2, 4])->sort()->values();
         $sortedAscCollection = $collection->sortBy('created_at');

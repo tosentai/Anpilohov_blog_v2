@@ -19,7 +19,7 @@ class AbstractJob implements ShouldQueue
      */
     public function __construct()
     {
-        $this->onQueue('generate-catalog'); //черга по замовчанню
+        $this->onQueue('generate-catalog');
     }
 
     /**

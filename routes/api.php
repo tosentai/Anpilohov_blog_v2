@@ -14,4 +14,5 @@ Route::get('/blog/posts/{slug}', [PostController::class, 'show']);
 
 Route::prefix('blog')->group(function () {
     Route::apiResource('categories', CategoryController::class);
+    Route::apiResource('posts', PostController::class);
 });

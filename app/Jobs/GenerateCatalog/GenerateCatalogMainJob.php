@@ -14,31 +14,24 @@ class GenerateCatalogMainJob extends AbstractJob
     {
         $this->debug('start');
 
-        // Спочатку кешуємо продукти
         GenerateCatalogCacheJob::dispatchSync();
 
-        // Створюємо ланцюг завдань формування файлів з цінами
         $chainPrices = $this->getChainPrices();
 
-        // Основні підзавдання
         $chainMain = [
-            new GenerateCategoriesJob, // Генерація категорій
-            new GenerateDeliveriesJob, // Генерація способів доставок
-            new GeneratePointsJob, // Генерація пунктів видачі
+            new GenerateCategoriesJob,
+            new GenerateDeliveriesJob,
+            new GeneratePointsJob,
         ];
 
-        // Підзавдання, які мають виконуваться останніми
         $chainLast = [
-            // Архівування файлів і перенесення архіву в публічний каталог
             new ArchiveUploadsJob,
-            // Відправка повідомлення зовнішньому сервісу про те, що можна завантажувати новий файл каталога товарів
             new SendPriceRequestJob,
         ];
 
         $chain = array_merge($chainPrices, $chainMain, $chainLast);
 
-        GenerateGoodsFileJob::withChain($chain)->dispatch();  //створюємо файл з товарами
-        //GenerateGoodsFileJob::dispatch()->chain($chain);
+        GenerateGoodsFileJob::withChain($chain)->dispatch();
 
         $this->debug('finish');
     }

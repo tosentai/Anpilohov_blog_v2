@@ -28,7 +28,6 @@ class ProcessVideoJob implements ShouldQueue
     public function processVideo()
     {
         ProcessVideoJob::dispatch();
-        //Відстрочка виконання завдання. Не впливає на паузу.
     }
 
     /**
